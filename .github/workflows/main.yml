@@ -1,0 +1,50 @@
+name: Check build/run
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+      # as by default
+      types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+    - name: Setting up
+      run: |
+        sudo apt update
+        sudo apt install libopencv-dev meson ninja-build python3-yaml python3-jinja2 python3-ply
+        git clone --depth 1 --branch v0.3.0 https://git.libcamera.org/libcamera/libcamera.git
+        cd libcamera
+        meson build && sudo ninja -C build install
+    - name: Checking out
+      uses: actions/checkout@v4
+    - name: Building target app
+      run: |
+        mkdir build && cd build && cmake .. && make
+      
+  execution:
+    name: Execution
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+    - name: Setting up
+      run: |
+        sudo apt update
+        sudo apt install libopencv-dev meson ninja-build python3-yaml python3-jinja2 python3-ply
+        git clone --depth 1 --branch v0.3.0 https://git.libcamera.org/libcamera/libcamera.git
+        cd libcamera
+        meson build && sudo ninja -C build install
+    - name: Checking out
+      uses: actions/checkout@v4
+    - name: Preparing binary
+      run: |
+        mkdir build && cd build && cmake -DADD_EXAMPLES=ON .. && make
+    - name: Executing rpi5csi program
+      run: ./build/examples/rpi5csi/rpi5csi
